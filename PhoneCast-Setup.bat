@@ -18,6 +18,9 @@ New-Item -ItemType Directory -Force $dir | Out-Null
 
 # 2. Auto-cast script
 @'
+$mx = New-Object System.Threading.Mutex($false, 'PhoneCast-watch')
+try { $ok = $mx.WaitOne(0) } catch [System.Threading.AbandonedMutexException] { $ok = $true }
+if (-not $ok) { exit }
 $casting = $false
 while ($true) {
   $connected = (adb devices) -match "`tdevice$"
@@ -32,6 +35,9 @@ while ($true) {
 
 # 3. Box: temperature, fps, screen buttons, keymap instructions
 @'
+$mx = New-Object System.Threading.Mutex($false, 'PhoneCast-temp')
+try { $ok = $mx.WaitOne(0) } catch [System.Threading.AbandonedMutexException] { $ok = $true }
+if (-not $ok) { exit }
 Add-Type -AssemblyName System.Windows.Forms, System.Drawing
 $shell = New-Object -ComObject WScript.Shell
 $f = New-Object Windows.Forms.Form
@@ -185,6 +191,14 @@ $s = $ws.CreateShortcut("$startup\PhoneCast-keymap.lnk")
 $s.TargetPath = "$dir\keymap.ahk"
 $s.Save()
 Remove-Item "$startup\PhoneCast.lnk" -ErrorAction SilentlyContinue
+
+# 5b. Watchdog: every 5 minutes, restart the cast and box if they stopped
+$set = New-ScheduledTaskSettingsSet -MultipleInstances IgnoreNew -ExecutionTimeLimit ([TimeSpan]::Zero) -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable
+$trg = New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(1) -RepetitionInterval (New-TimeSpan -Minutes 5)
+foreach ($n in 'watch', 'temp') {
+  $act = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument "-WindowStyle Hidden -ExecutionPolicy Bypass -File `"$dir\$n.ps1`""
+  Register-ScheduledTask -TaskName "PhoneCast-$n" -Action $act -Trigger $trg -Settings $set -Force | Out-Null
+}
 
 # 6. Start (or restart) everything now
 Get-CimInstance Win32_Process -Filter "Name='powershell.exe'" | Where-Object CommandLine -match 'watch\.ps1|temp\.ps1' | ForEach-Object { Stop-Process -Id $_.ProcessId }

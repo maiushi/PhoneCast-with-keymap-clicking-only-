@@ -15,7 +15,7 @@ If Windows shows "Windows protected your PC", click **More info**, then **Run an
 - **Auto-cast:** the phone screen opens on your PC whenever you plug it in, using [scrcpy](https://github.com/Genymobile/scrcpy). Control it with your mouse and keyboard.
 - **Info box:** shows the phone's temperature and the cast's fps, with Screen off / Screen on buttons. It hides when the phone is unplugged.
 - **Keymap (clicking only):** press a key to tap a spot on the phone, using [AutoHotkey](https://www.autohotkey.com/).
-- Everything starts with Windows.
+- Everything starts with Windows, and restarts itself within 5 minutes if it ever stops.
 
 ## Phone setup (one time)
 
@@ -47,7 +47,13 @@ Letters A–Z and numbers 0–9. Taps only, no dragging or holding.
 
 ## Remove
 
-Press `Win + R`, type `shell:startup`, delete the three `PhoneCast` shortcuts, then delete the `PhoneCast` folder in your user folder.
+Press `Win + R`, type `shell:startup`, and delete the three `PhoneCast` shortcuts. Then run this in PowerShell to remove the auto-restart tasks:
+
+```powershell
+Unregister-ScheduledTask -TaskName PhoneCast-watch, PhoneCast-temp -Confirm:$false
+```
+
+Finally, delete the `PhoneCast` folder in your user folder.
 
 ## Notes
 
