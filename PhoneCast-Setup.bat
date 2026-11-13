@@ -207,13 +207,19 @@ DoClick(hk) {
 }
 '@ | Set-Content "$dir\keymap.ahk"
 
-# 5. Start all three with Windows
+# 5. Hidden launcher: runs a script with no window at all
+@'
+Set sh = CreateObject("WScript.Shell")
+sh.Run "powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File """ & WScript.Arguments(0) & """", 0, False
+'@ | Set-Content "$dir\run-hidden.vbs"
+
+# 5a. Start all three with Windows
 $startup = [Environment]::GetFolderPath('Startup')
 $ws = New-Object -ComObject WScript.Shell
 foreach ($n in 'watch', 'temp') {
   $s = $ws.CreateShortcut("$startup\PhoneCast-$n.lnk")
-  $s.TargetPath = "powershell.exe"
-  $s.Arguments = "-WindowStyle Hidden -ExecutionPolicy Bypass -File `"$dir\$n.ps1`""
+  $s.TargetPath = "wscript.exe"
+  $s.Arguments = "`"$dir\run-hidden.vbs`" `"$dir\$n.ps1`""
   $s.Save()
 }
 $s = $ws.CreateShortcut("$startup\PhoneCast-keymap.lnk")
@@ -225,7 +231,7 @@ Remove-Item "$startup\PhoneCast.lnk" -ErrorAction SilentlyContinue
 $set = New-ScheduledTaskSettingsSet -MultipleInstances IgnoreNew -ExecutionTimeLimit ([TimeSpan]::Zero) -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable
 $trg = New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(1) -RepetitionInterval (New-TimeSpan -Minutes 5)
 foreach ($n in 'watch', 'temp') {
-  $act = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument "-WindowStyle Hidden -ExecutionPolicy Bypass -File `"$dir\$n.ps1`""
+  $act = New-ScheduledTaskAction -Execute 'wscript.exe' -Argument "`"$dir\run-hidden.vbs`" `"$dir\$n.ps1`""
   Register-ScheduledTask -TaskName "PhoneCast-$n" -Action $act -Trigger $trg -Settings $set -Force | Out-Null
 }
 
