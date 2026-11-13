@@ -13,7 +13,8 @@ If Windows shows "Windows protected your PC", click **More info**, then **Run an
 ## What it sets up
 
 - **Auto-cast:** the phone screen opens on your PC whenever you plug it in, using [scrcpy](https://github.com/Genymobile/scrcpy). Control it with your mouse and keyboard.
-- **Info box:** shows the phone's temperature and the cast's fps, with Screen off / Screen on buttons. It hides when the phone is unplugged.
+- **Info box:** shows the phone's temperature and the cast's fps, with Screen off / Screen on buttons and a **Performance** button. It hides when the phone is unplugged.
+- **Performance mode:** OFF (default) keeps the phone cool with 60 fps and a smaller picture. ON switches to 120 fps at full resolution with a sharper picture, but the phone runs warmer. The cast restarts for a few seconds when you switch.
 - **Keymap (clicking only):** press a key to tap a spot on the phone, using [AutoHotkey](https://www.autohotkey.com/).
 - Everything starts with Windows, and restarts itself within 5 minutes if it ever stops.
 

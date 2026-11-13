@@ -24,8 +24,15 @@ if (-not $ok) { exit }
 $casting = $false
 while ($true) {
   $connected = (adb devices) -match "`tdevice$"
+  if (Test-Path "$PSScriptRoot\restart.flag") {
+    Remove-Item "$PSScriptRoot\restart.flag" -ErrorAction SilentlyContinue
+    $casting = $false
+  }
   if ($connected -and -not $casting) {
-    Start-Process scrcpy -ArgumentList "--keyboard=uhid --stay-awake --turn-screen-off --max-size=1600 --max-fps=60 --video-bit-rate=8M --print-fps" -NoNewWindow -RedirectStandardOutput "$PSScriptRoot\scrcpy-out.log" -RedirectStandardError "$PSScriptRoot\scrcpy-err.log"
+    $mode = (Get-Content "$PSScriptRoot\mode.txt" -ErrorAction SilentlyContinue | Select-Object -First 1)
+    if ($mode -eq 'perf') { $q = "--max-fps=120 --video-bit-rate=16M" }
+    else { $q = "--max-size=1600 --max-fps=60 --video-bit-rate=8M" }
+    Start-Process scrcpy -ArgumentList "--keyboard=uhid --stay-awake --turn-screen-off $q --print-fps" -NoNewWindow -RedirectStandardOutput "$PSScriptRoot\scrcpy-out.log" -RedirectStandardError "$PSScriptRoot\scrcpy-err.log"
     $casting = $true
   }
   if (-not $connected) { $casting = $false }
@@ -44,7 +51,7 @@ $f = New-Object Windows.Forms.Form
 $f.FormBorderStyle = 'None'; $f.TopMost = $true; $f.ShowInTaskbar = $false
 $f.BackColor = 'Black'; $f.Opacity = 0.85
 $f.StartPosition = 'Manual'
-$f.Size = New-Object Drawing.Size(200, 158)
+$f.Size = New-Object Drawing.Size(200, 190)
 $wa = [Windows.Forms.Screen]::PrimaryScreen.WorkingArea
 $f.Location = New-Object Drawing.Point(($wa.Right - 210), ($wa.Top + 10))
 
@@ -69,6 +76,28 @@ function New-Btn($text, $x) {
 $bOff = New-Btn 'Screen off' 8
 $bOn  = New-Btn 'Screen on' 104
 
+$bPerf = New-Btn '' 8
+$bPerf.Location = New-Object Drawing.Point(8, 96); $bPerf.Size = New-Object Drawing.Size(184, 26)
+$modeFile = "$PSScriptRoot\mode.txt"
+$showMode = {
+  $m = Get-Content $modeFile -ErrorAction SilentlyContinue | Select-Object -First 1
+  if ($m -eq 'perf') {
+    $bPerf.Text = 'Performance: ON (120 fps)'
+    $bPerf.BackColor = [Drawing.Color]::FromArgb(150, 70, 0)
+  } else {
+    $bPerf.Text = 'Performance: OFF (cool, 60 fps)'
+    $bPerf.BackColor = [Drawing.Color]::FromArgb(50, 50, 50)
+  }
+}
+& $showMode
+$bPerf.Add_Click({
+  $m = Get-Content $modeFile -ErrorAction SilentlyContinue | Select-Object -First 1
+  if ($m -eq 'perf') { 'cool' | Set-Content $modeFile } else { 'perf' | Set-Content $modeFile }
+  & $showMode
+  New-Item "$PSScriptRoot\restart.flag" -ItemType File -Force | Out-Null
+  Stop-Process -Name scrcpy -ErrorAction SilentlyContinue
+})
+
 $send = {
   param($keys)
   $p = Get-Process scrcpy -ErrorAction SilentlyContinue | Select-Object -First 1
@@ -82,11 +111,11 @@ $bOff.Add_Click({ & $send '%o' })
 $bOn.Add_Click({ & $send '%+o' })
 
 $l3 = New-Object Windows.Forms.Label
-$l3.Location = New-Object Drawing.Point(6, 96); $l3.Size = New-Object Drawing.Size(190, 58)
+$l3.Location = New-Object Drawing.Point(6, 128); $l3.Size = New-Object Drawing.Size(190, 58)
 $l3.ForeColor = 'Silver'
 $l3.Font = New-Object Drawing.Font('Segoe UI', 7.5)
 $l3.Text = "Keymap (hover mouse on spot):`nCtrl+Alt+key = set`nCtrl+Alt+Shift+key = remove`nF8 = keymap on/off"
-$f.Controls.AddRange(@($l, $l2, $bOff, $bOn, $l3))
+$f.Controls.AddRange(@($l, $l2, $bOff, $bOn, $bPerf, $l3))
 
 $update = {
   $line = adb shell dumpsys battery 2>$null | Select-String 'temperature' | Select-Object -First 1
